@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#8B2121">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Il Posto · Movimientos</title>
+<style>
+  :root {
+    --fondo: #f4f4f6; --tarjeta: #ffffff; --texto: #1d1d1f; --suave: #6b6b73;
+    --borde: #d9d9df; --acento: #8B2121; --acento-texto: #ffffff; --ok: #1e7b34; --aviso: #b26a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #111113; --tarjeta: #1c1c1f; --texto: #f2f2f4; --suave: #a0a0a8;
+      --borde: #34343a; --acento: #c0392b; --acento-texto: #ffffff; --ok: #4cc36b; --aviso: #f0a93c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--fondo); color: var(--texto);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  header { background: var(--acento); color: var(--acento-texto); padding: 14px 16px; padding-top: calc(14px + env(safe-area-inset-top)); }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 2px 0 0; font-size: 13px; opacity: .9; }
+  main { max-width: 560px; margin: 0 auto; padding: 12px; }
+  .card { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .card h2 { margin: 0 0 10px; font-size: 17px; }
+  label { display: block; font-size: 13px; color: var(--suave); margin: 10px 0 4px; }
+  input[type=text], input[type=date] {
+    width: 100%; padding: 12px; font-size: 17px; border-radius: 10px; border: 1px solid var(--borde);
+    background: var(--fondo); color: var(--texto);
+  }
+  #monto { font-size: 24px; font-weight: 600; }
+  .tipos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tipo {
+    padding: 12px 8px; border-radius: 10px; border: 2px solid var(--borde); background: var(--fondo);
+    color: var(--texto); font-size: 14px; line-height: 1.25; cursor: pointer;
+  }
+  .tipo[aria-pressed=true] { border-color: var(--acento); background: var(--acento); color: var(--acento-texto); font-weight: 600; }
+  button { font-family: inherit; }
+  .primario {
+    width: 100%; margin-top: 14px; padding: 14px; font-size: 17px; font-weight: 600; border: 0; border-radius: 12px;
+    background: var(--acento); color: var(--acento-texto); cursor: pointer;
+  }
+  .secundario {
+    width: 100%; margin-top: 8px; padding: 12px; font-size: 15px; border-radius: 12px; cursor: pointer;
+    border: 1px solid var(--borde); background: var(--fondo); color: var(--texto);
+  }
+  .msg { min-height: 20px; margin: 8px 0 0; font-size: 14px; }
+  .ok { color: var(--ok); } .error { color: var(--acento); }
+  .resumen { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .resumen div { background: var(--fondo); border-radius: 10px; padding: 8px 10px; }
+  .resumen small { display: block; color: var(--suave); font-size: 12px; }
+  .resumen strong { font-size: 16px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li.mov { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid var(--borde); }
+  li.mov:first-child { border-top: 0; }
+  li.mov .info { flex: 1; min-width: 0; }
+  li.mov .linea1 { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
+  li.mov .linea2 { font-size: 12px; color: var(--suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge { font-size: 11px; padding: 1px 6px; border-radius: 8px; border: 1px solid var(--borde); margin-left: 4px; }
+  .badge.pend { color: var(--aviso); border-color: var(--aviso); }
+  .badge.env { color: var(--ok); border-color: var(--ok); }
+  .borrar { border: 0; background: transparent; color: var(--suave); font-size: 18px; padding: 6px; cursor: pointer; }
+  .nota { font-size: 12px; color: var(--suave); margin: 8px 0 0; }
+  .vacio { color: var(--suave); font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧀 Il Posto · Movimientos</h1>
+  <p>Funciona sin internet. Los datos quedan guardados en este celular.</p>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Nuevo movimiento</h2>
+    <div class="tipos" id="tipos"></div>
+
+    <label for="monto">Monto ($)</label>
+    <input id="monto" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+
+    <label for="concepto">Concepto (opcional)</label>
+    <input id="concepto" type="text" placeholder="Ej: ventas turno mañana" autocomplete="off">
+
+    <label for="fecha">Fecha</label>
+    <input id="fecha" type="date">
+
+    <button class="primario" id="guardar">💾 Guardar movimiento</button>
+    <p class="msg" id="msg" role="status"></p>
+  </section>
+
+  <section class="card">
+    <h2>Hoy</h2>
+    <div class="resumen" id="resumen"></div>
+  </section>
+
+  <section class="card">
+    <h2>Movimientos guardados</h2>
+    <p class="nota" id="estadoCola"></p>
+    <ul id="lista"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Enviar a la compu</h2>
+    <button class="primario" id="enviar">📤 Enviar pendientes</button>
+    <button class="secundario" id="copiar">📋 Copiar como texto</button>
+    <button class="secundario" id="enviarTodo">📤 Enviar todo (incluye los ya enviados)</button>
+    <button class="secundario" id="borrarEnviados">🧹 Borrar los ya enviados</button>
+    <p class="msg" id="msgEnvio" role="status"></p>
+    <p class="nota">Se genera un archivo CSV. Mandalo por WhatsApp, mail o Drive y, en la compu, importalo en la pestaña «📲 Celular». Si mandás uno dos veces, no se duplican los movimientos.</p>
+    <p class="nota">Para instalar esta app: en el menú del navegador (⋮ o «Compartir») elegí «Agregar a pantalla de inicio» o «Instalar app».</p>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+// ---------- Tipos de movimiento (las claves las entiende la app de la compu) ----------
+const TIPOS = [
+  { k: "ing_ef",    t: "💵 Ingreso en efectivo" },
+  { k: "ing_dg",    t: "📲 Ingreso digital" },
+  { k: "egr_ef",    t: "🧾 Gasto / retiro en efectivo" },
+  { k: "egr_dg",    t: "📤 Egreso digital" },
+  { k: "resguardo", t: "🏦 Retiro a resguardo" },
+  { k: "aporte_ef", t: "💼 Aporte externo (efectivo)" },
+  { k: "aporte_dg", t: "💼 Aporte externo (digital)" }
+];
+const ETIQUETA = Object.fromEntries(TIPOS.map(t => [t.k, t.t]));
+const CLAVE_ALMACEN = "ilposto_movs_v1";
+
+let tipoElegido = null;
+
+// ---------- Utilidades ----------
+const $ = (id) => document.getElementById(id);
+const pad = (n) => String(n).padStart(2, "0");
+
+function hoyISO() {
+  const d = new Date();
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
+function horaActual() {
+  const d = new Date();
+  return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+}
+function sello() {
+  const d = new Date();
+  return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "_" + pad(d.getHours()) + pad(d.getMinutes());
+}
+function uid() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+function fmt(n) {
+  return "$ " + Number(n).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fechaCorta(iso) {
+  const p = String(iso).split("-");
+  return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : iso;
+}
+
+// Acepta "38800", "38.800", "38.800,50", "100,5" y "100.5"
+function parseMonto(txt) {
+  let s = String(txt).trim().replace(/\s/g, "").replace(/\$/g, "");
+  if (!s) return NaN;
+  if (s.includes(",")) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+    s = s.replace(/\./g, "");
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+}
+
+// ---------- Almacenamiento en el celular ----------
+function leer() {
+  try { return JSON.parse(localStorage.getItem(CLAVE_ALMACEN) || "[]"); }
+  catch (e) { return []; }
+}
+function escribir(arr) {
+  try { localStorage.setItem(CLAVE_ALMACEN, JSON.stringify(arr)); return true; }
+  catch (e) { alert("No se pudo guardar en el celular: " + e.message); return false; }
+}
+
+// ---------- Mensajes ----------
+function mensaje(id, texto, clase) {
+  const el = $(id);
+  el.textContent = texto;
+  el.className = "msg " + (clase || "");
+}
+
+// ---------- Pantalla ----------
+function dibujarTipos() {
+  const cont = $("tipos");
+  cont.innerHTML = "";
+  TIPOS.forEach((t) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "tipo";
+    b.textContent = t.t;
+    b.setAttribute("aria-pressed", String(tipoElegido === t.k));
+    b.addEventListener("click", () => { tipoElegido = t.k; dibujarTipos(); });
+    cont.appendChild(b);
+  });
+}
+
+function dibujarResumen() {
+  const hoy = hoyISO();
+  const movs = leer().filter((m) => m.fecha === hoy);
+  const suma = (...claves) => movs.filter((m) => claves.includes(m.tipo)).reduce((a, m) => a + m.monto, 0);
+  const datos = [
+    ["Ingresos efectivo", suma("ing_ef")],
+    ["Ingresos digitales", suma("ing_dg")],
+    ["Gastos / retiros (efectivo)", suma("egr_ef")],
+    ["A resguardo", suma("resguardo")],
+    ["Aportes externos", suma("aporte_ef", "aporte_dg")],
+    ["Egresos digitales", suma("egr_dg")]
+  ];
+  const cont = $("resumen");
+  cont.innerHTML = "";
+  datos.forEach(([titulo, valor]) => {
+    const d = document.createElement("div");
+    const s = document.createElement("small"); s.textContent = titulo;
+    const b = document.createElement("strong"); b.textContent = fmt(valor);
+    d.appendChild(s); d.appendChild(b); cont.appendChild(d);
+  });
+}
+
+function dibujarLista() {
+  const movs = leer().sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+  const pendientes = movs.filter((m) => !m.enviado).length;
+  $("estadoCola").textContent = movs.length
+    ? pendientes + " pendiente(s) de enviar · " + (movs.length - pendientes) + " ya enviado(s)"
+    : "";
+  const ul = $("lista");
+  ul.innerHTML = "";
+  if (!movs.length) {
+    const li = document.createElement("li");
+    li.className = "vacio";
+    li.textContent = "Todavía no guardaste movimientos.";
+    ul.appendChild(li);
+    return;
+  }
+  movs.forEach((m) => {
+    const li = document.createElement("li");
+    li.className = "mov";
+    const info = document.createElement("div"); info.className = "info";
+    const l1 = document.createElement("div"); l1.className = "linea1";
+    const nombre = document.createElement("span"); nombre.textContent = ETIQUETA[m.tipo] || m.tipo;
+    const monto = document.createElement("span"); monto.textContent = fmt(m.monto);
+    l1.appendChild(nombre); l1.appendChild(monto);
+    const l2 = document.createElement("div"); l2.className = "linea2";
+    l2.textContent = fechaCorta(m.fecha) + " " + m.hora.slice(0, 5) + (m.concepto ? " · " + m.concepto : "");
+    const badge = document.createElement("span");
+    badge.className = "badge " + (m.enviado ? "env" : "pend");
+    badge.textContent = m.enviado ? "enviado" : "pendiente";
+    nombre.appendChild(badge);
+    info.appendChild(l1); info.appendChild(l2);
+    const x = document.createElement("button");
+    x.className = "borrar"; x.type = "button"; x.textContent = "✖"; x.setAttribute("aria-label", "Borrar");
+    x.addEventListener("click", () => {
+      if (confirm("¿Borrar este movimiento?\n" + (ETIQUETA[m.tipo] || m.tipo) + " " + fmt(m.monto))) {
+        escribir(leer().filter((z) => z.ref !== m.ref));
+        refrescar();
+      }
+    });
+    li.appendChild(info); li.appendChild(x);
+    ul.appendChild(li);
+  });
+}
+
+function refrescar() { dibujarResumen(); dibujarLista(); }
+
+// ---------- Guardar ----------
+function guardar() {
+  const monto = parseMonto($("monto").value);
+  const fecha = $("fecha").value;
+  if (!tipoElegido) return mensaje("msg", "Elegí el tipo de movimiento.", "error");
+  if (!(monto > 0)) return mensaje("msg", "Poné un monto mayor a 0.", "error");
+  if (!fecha) return mensaje("msg", "Elegí la fecha.", "error");
+
+  const movs = leer();
+  movs.push({
+    ref: uid(), fecha: fecha, hora: horaActual(), tipo: tipoElegido,
+    concepto: $("concepto").value.replace(/\s+/g, " ").trim(), monto: monto, enviado: false
+  });
+  if (!escribir(movs)) return;
+  $("monto").value = "";
+  $("concepto").value = "";
+  mensaje("msg", "✅ Guardado: " + (ETIQUETA[tipoElegido] || "") + " " + fmt(monto), "ok");
+  refrescar();
+  $("monto").focus();
+}
+
+// ---------- Enviar a la compu ----------
+function csvDe(movs) {
+  const esc = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+  const filas = movs.map((m) => [m.ref, m.fecha, m.hora, m.tipo, esc(m.concepto || ""), Number(m.monto).toFixed(2)].join(","));
+  return ["ref,fecha,hora,tipo,concepto,monto"].concat(filas).join("\n") + "\n";
+}
+
+function marcarEnviados(refs) {
+  const set = new Set(refs);
+  escribir(leer().map((m) => (set.has(m.ref) ? Object.assign({}, m, { enviado: true }) : m)));
+  refrescar();
+}
+
+function descargar(archivo) {
+  const url = URL.createObjectURL(archivo);
+  const a = document.createElement("a");
+  a.href = url; a.download = archivo.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+async function enviar(todos) {
+  const movs = leer().filter((m) => todos || !m.enviado);
+  if (!movs.length) return mensaje("msgEnvio", "No hay movimientos para enviar.", "error");
+  const archivo = new File(["\ufeff" + csvDe(movs)], "movimientos_" + sello() + ".csv", { type: "text/csv" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+      await navigator.share({ files: [archivo], title: "Movimientos Il Posto" });
+    } else {
+      descargar(archivo);
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return mensaje("msgEnvio", "Envío cancelado.", "error");
+    descargar(archivo);
+  }
+  marcarEnviados(movs.map((m) => m.ref));
+  mensaje("msgEnvio", "✅ Listo: " + movs.length + " movimiento(s) preparados para la compu.", "ok");
+}
+
+async function copiar() {
+  const movs = leer().filter((m) => !m.enviado);
+  if (!movs.length) return mensaje("msgEnvio", "No hay movimientos pendientes.", "error");
+  const texto = csvDe(movs);
+  try {
+    await navigator.clipboard.writeText(texto);
+  } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = texto; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e2) { /* sin permiso */ }
+    ta.remove();
+  }
+  marcarEnviados(movs.map((m) => m.ref));
+  mensaje("msgEnvio", "📋 Texto copiado. Pegalo en un mensaje (por ejemplo, WhatsApp a vos mismo) y después en la compu.", "ok");
+}
+
+function borrarEnviados() {
+  const n = leer().filter((m) => m.enviado).length;
+  if (!n) return mensaje("msgEnvio", "No hay movimientos enviados para borrar.", "error");
+  if (!confirm("¿Borrar " + n + " movimiento(s) ya enviados de este celular?\nAsegurate de haberlos importado en la compu.")) return;
+  escribir(leer().filter((m) => !m.enviado));
+  refrescar();
+  mensaje("msgEnvio", "🧹 Borrados.", "ok");
+}
+
+// ---------- Arranque ----------
+$("fecha").value = hoyISO();
+$("guardar").addEventListener("click", guardar);
+$("enviar").addEventListener("click", () => enviar(false));
+$("enviarTodo").addEventListener("click", () => enviar(true));
+$("copiar").addEventListener("click", copiar);
+$("borrarEnviados").addEventListener("click", borrarEnviados);
+$("monto").addEventListener("keydown", (e) => { if (e.key === "Enter") guardar(); });
+dibujarTipos();
+refrescar();
+
+// Pide al navegador que no borre los datos guardados y registra el modo sin conexión
+if (navigator.storage && navigator.storage.persist) { navigator.storage.persist(); }
+if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(() => {}); }
+</script>
+</body>
+</html>
