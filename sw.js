@@ -1,6 +1,6 @@
 // Service worker: guarda la app en el celular para que abra sin internet.
 // Si cambiás index.html y lo volvés a subir, cambiá también este número de versión.
-const CACHE = "ilposto-movil-v1";
+const CACHE = "ilposto-movil-v2";
 const ARCHIVOS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
